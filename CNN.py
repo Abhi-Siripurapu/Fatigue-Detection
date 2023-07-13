@@ -7,7 +7,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropou
 from tensorflow.keras.optimizers import Adam
 
 # Directory containing audio files
-directory = 'path_to_your_audio_files'
+directory = 'C:\\Users\\Abhinav\\vf_data'
 
 # Load the audio file
 def load_audio(audio_path):
@@ -32,7 +32,7 @@ def process_audio_files(directory):
             audio_path = os.path.join(directory, filename)
             feature = extract_spectrogram_features(audio_path)
             features.append(feature)
-            label = filename.split('_')[0]  # Assuming the label is the first part of the filename
+            label = int(filename.split('_')[0])  # Assuming the label is the first part of the filename
             labels.append(label)
     return features, labels
 
@@ -62,7 +62,13 @@ def train_model_on_multiple_files(directory):
     model = define_model(features_train[0].shape)
     
     # Compile the model
-    model.compile(optimizer=Adam(), loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+    labels_train = np.array(labels_train)
+    labels_test = np.array(labels_test)
+
+    # Train the model
+    history = model.fit(features_train, labels_train, epochs=10, batch_size=32, validation_data=(features_test, labels_test))
     
     # Train the model
     model.fit(features_train, labels_train, epochs=10, batch_size=32, validation_data=(features_test, labels_test))
