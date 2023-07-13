@@ -1,49 +1,54 @@
-import random
+import os
 from pytube import YouTube
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-from moviepy.editor import VideoFileClip
-import youtube_dl
+from moviepy.editor import AudioFileClip
+from pydub import AudioSegment
+import random
 
 def download_video(url):
+    print(f"Downloading {url}")
     yt = YouTube(url)
-    # Ensure the video is longer than 2 hours
-    if yt.length < 7200:
-        print("Video is shorter than 2 hours")
-        return None
-    # Get the highest quality stream
     stream = yt.streams.get_highest_resolution()
-    # Check if a stream is available
     if stream is None:
-        print("No available streams for this video")
+        print(f"No stream available for {url}")
         return None
-    # Download the video
-    output_path = stream.download()
-    return output_path
+    out_dir = 'C:\\Users\\Abhinav\\vf_data'
+    video_file = stream.download(output_path=out_dir)
+    base, ext = os.path.splitext(video_file)
+    if ext != ".mp4":
+        new_video_file = base + ".mp4"
+        os.rename(video_file, new_video_file)
+        video_file = new_video_file
+    return video_file
 
-def split_video(video_file, start_time, end_time, label):
-    clip = VideoFileClip(video_file)
-    duration = end_time - start_time
-    current_time = start_time
-    while current_time < end_time:
-        # Randomly select a segment length between 30 seconds and 5 minutes
-        segment_length = random.randint(30, 300)
-        # Ensure the segment won't extend past the end time
-        if current_time + segment_length > end_time:
-            segment_length = end_time - current_time
-        # Extract the segment
-        segment_end = current_time + segment_length
-        segment = clip.subclip(current_time, segment_end)
-        # Extract the audio and save it
-        audio_file = f"{label}_{current_time}_{segment_end}.wav"
-        segment.audio.write_audiofile(audio_file)
-        # Update the current time
-        current_time += segment_length
+
+def process_audio(audio, start, end, output_path, label):
+    try:
+        segment = audio.subclip(start, end)
+        if fatigued:
+            segment.write_audiofile(output_path)
+    except Exception as e:
+        print(f"Error processing audio segment {start}-{end}: {str(e)}")
+
 
 def process_video(url):
-    video_file = download_video(url)
-    if video_file:
-        split_video(video_file, 15*60, 50*60, '0')
-        split_video(video_file, 50*60, 85*60, '0.5')
-        split_video(video_file, 85*60, 7200, '1')
+    print(f"Downloading {url}")
+    yt = YouTube(url)
+    vf_data_folder = r'C:\\Users\\Abhinav\\vf_data'
+    stream = yt.streams.filter(progressive=True, file_extension='mp4').first()
+    if stream is not None:
+        video_file = os.path.join(vf_data_folder, 'temp_video_file.mp4')
+        stream.download(output_path=video_file)
+        audio = AudioFileClip(video_file)
+        print(f"Processing audio for {url}")
+        t = 0
+        while t < audio.duration:
+            end_t = min(t + 15*60, audio.duration)
+            output_path = os.path.join(vf_data_folder, f"{t}_{end_t}.wav")
+            fatigued = t >= 5100
+            process_audio(audio, t, end_t, output_path, fatigued)
+            t = end_t
+    else:
+        print(f"Failed to download {url}")
 
-process_video('https://www.youtube.com/watch?v=dNrTrx42DGQ')
+
+process_video("youtube.com/watch?v=Ff4fRgnuFgQ")
