@@ -21,7 +21,8 @@ def download_video(url):
     return video_file
 
 
-def process_audio(audio, start, end, output_path, label):
+def process_audio(audio, start, end, output_path, fatigued):
+    end = float(end)
     try:
         segment = audio.subclip(start, end)
         if fatigued:
@@ -29,26 +30,34 @@ def process_audio(audio, start, end, output_path, label):
     except Exception as e:
         print(f"Error processing audio segment {start}-{end}: {str(e)}")
 
+def sanitize_title(title):
+    invalid_chars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+    for char in invalid_chars:
+        if char != ',':
+            title = title.replace(char, '_')
+    return title
+
+
 
 def process_video(url):
     print(f"Downloading {url}")
     yt = YouTube(url)
-    vf_data_folder = r'C:\\Users\\Abhinav\\vf_data'
-    stream = yt.streams.filter(progressive=True, file_extension='mp4').first()
-    if stream is not None:
-        video_file = os.path.join(vf_data_folder, 'temp_video_file.mp4')
-        stream.download(output_path=video_file)
-        audio = AudioFileClip(video_file)
-        print(f"Processing audio for {url}")
-        t = 0
-        while t < audio.duration:
-            end_t = min(t + 15*60, audio.duration)
-            output_path = os.path.join(vf_data_folder, f"{t}_{end_t}.wav")
-            fatigued = t >= 5100
-            process_audio(audio, t, end_t, output_path, fatigued)
-            t = end_t
-    else:
-        print(f"Failed to download {url}")
+    stream = yt.streams.get_audio_only()
+    if stream is None:
+        print(f"No stream available for {url}")
+        return None
+    stream.download(output_path="C:\\Users\\Abhinav\\vf_data")
+    filename = stream.default_filename
+        
+    output_path = os.path.join("C:\\Users\\Abhinav\\vf_data", filename)
+    audio = AudioFileClip(output_path)
+
+    
+
+    process_audio(audio, 85*60, output_path, audio.duration - 200, 1)  # Use audio.duration instead of yt.length/60
+    audio.close()  # close the audio clip before removing the file
+    os.remove(output_path)  # remove the downloaded file
+
 
 
 process_video("youtube.com/watch?v=Ff4fRgnuFgQ")
